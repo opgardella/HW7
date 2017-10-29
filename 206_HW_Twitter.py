@@ -9,7 +9,7 @@ import urllib.request, urllib.parse, urllib.error
 ## COMMENT WITH:
 ## Name: Olivia Gardella
 ## Your section day/time: Thursday 3-4pm
-## Any names of people you worked with on this assignment:
+## Any names of people you worked with on this assignment: Julie Burke, Hana Bezark
 
 
 ## Write code that uses the tweepy library to search for tweets with three different phrases of the
@@ -35,7 +35,15 @@ import urllib.request, urllib.parse, urllib.error
 ##SAMPLE OUTPUT
 ## See: https://docs.google.com/a/umich.edu/document/d/1o8CWsdO2aRT7iUz9okiCHCVgU5x_FyZkabu2l9qwkf8/edit?usp=sharing
 
-
+#to take care of Unicode error
+import sys
+def uprint(*objects, sep=' ', end='\n', file=sys.stdout):
+    enc = file.encoding
+    if enc == 'UTF-8':
+        print(*objects, sep=sep, end=end, file=file)
+    else:
+        f = lambda obj: str(obj).encode(enc, errors='backslashreplace').decode(enc)
+        print(*map(f, objects), sep=sep, end=end, file=file)
 
 ## **** For extra credit, create another file called twitter_info.py that
 ## contains your consumer_key, consumer_secret, access_token, and access_token_secret,
@@ -68,13 +76,16 @@ api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 ## 1. Set up the caching pattern start -- the dictionary and the try/except
 ## 		statement shown in class.
 
+#initiate the cache file
 CACHE_FNAME = 'twitter_results.json' # String for your file. We want the JSON file type, bcause that way, we can easily get the information into a Python dictionary!
 
+#try to open the cache and read it
 try:
     cache_file = open(CACHE_FNAME, 'r') # Try to read the data from the file
     cache_contents = cache_file.read()  # If it's there, get it into a string
     CACHE_DICTION = json.loads(cache_contents) # And then load it into a dictionary
     cache_file.close() # Close the file, we're good, we got the data in a dictionary.
+#or else make an empty dictionary
 except:
     CACHE_DICTION = {}
 
@@ -84,49 +95,61 @@ except:
 ## 		so it either gets new data or caches data, depending upon what the input
 ##		to search for is.
 
-def get_twitter(search_term):
 
+def get_twitter(search_term):
+    #if the term is already in the cache, just get it from there
     if search_term in CACHE_DICTION:
         print("using cache")
         return CACHE_DICTION[search_term]
+    #if it is not already in the cache, use twitter results
     else:
         print("fetching")
-        #uh = urllib.request.urlopen(url)
-        #data = uh.read().decode()
-        results = api.search(q=search_term)
+        results = api.search(search_term)
+        #try to add it to the cache
         try:
-            CACHE_DICTION[search_term] =  json.loads(results)
+            CACHE_DICTION[search_term] =  json.dumps(results)
             dumped_json_cache = json.dumps(CACHE_DICTION)
             fw = open(CACHE_FNAME,"w")
             fw.write(dumped_json_cache)
             fw.close() # Close the open file
             return CACHE_DICTION[search_term]
+        #if there is something wrong, print that it wasn't a valid search
         except:
             print("Wasn't in cache and wasn't valid search either")
             return None
 
 
 
-
-
 ## 3. Using a loop, invoke your function, save the return value in a variable, and explore the
 ##		data you got back!
 
-while True:
+#have c be a counter
+c = 0
+#have the while loop run 3 times
+while c < 3:
+    #have users input the tweet term they want to search
     tweet_term = input('Enter Tweet term: ')
+    #if user just presses enter, break
     if len(tweet_term) < 1: break
-    data = get_twitter(tweet_term)
-    print (data)
-    #find text
-
-    #find when created
-
-    #print ('TEXT:', text)
-    #print ('CREATED AT:', time)
+    #get data from get_twitter function
+    data = get_twitter(tweet_term) #data is a dict
+    #increment c
+    c += 1
+    data_dict = json.loads(data)
+    #print (data)
+    #print(type(data))
+    #print(type(data_dict))
 
 
 ## 4. With what you learn from the data -- e.g. how exactly to find the
 ##		text of each tweet in the big nested structure -- write code to print out
 ## 		content from 5 tweets, as shown in the linked example.
-#for tweet in data:
-#    pass
+
+    for tweet in data_dict['statuses'][0:5]:
+        #find the text and time created for each tweet the user searches
+        text = tweet['text']
+        created_at = tweet['created_at']
+        #return the text and created at
+        uprint ('TEXT:', text)
+        uprint ('CREATED AT:', created_at)
+        print ('\n')
